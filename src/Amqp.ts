@@ -94,7 +94,7 @@ export default class Amqp {
   public async consume(): Promise<void> {
     try {
       const { noAck } = this.config
-      await this.assertQueue()
+      await this.checkQueueExists()
       this.bindQueue()
       await this.channel.consume(
         this.q.queue,
@@ -334,6 +334,19 @@ export default class Amqp {
 
     return name
   }
+
+  async checkQueueExists(configParams) {
+    const { queue } = configParams || this.config;
+    const { name } = queue;
+    try {
+        this.q = await this.channel.checkQueue(name);
+        return name; // Queue exists
+    } catch (error) {
+        // Handle the error if the queue does not exist
+        this.node.error(`Queue does not exist: ${name}`);
+        throw error;
+    }
+}
 
   private async bindQueue(configParams?: AmqpConfig): Promise<void> {
     const { name, type, routingKey } =
